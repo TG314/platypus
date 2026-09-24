@@ -301,15 +301,15 @@ int is_white_attacked(int sq_idx, const Bitboard &bb) {
     if (((bb.black_pawns >> 7) & ~FILE_A) & bit) return true;
     if (((bb.black_pawns >> 9) & ~FILE_H) & bit) return true;
 
-    // knight attacks
-    if (((bb.black_knights >> 17) & ~FILE_A) & bit) return true;
-    if (((bb.black_knights >> 15) & ~FILE_H) & bit) return true;
-    if (((bb.black_knights >> 10) & ~(FILE_A | FILE_B)) & bit) return true;
-    if (((bb.black_knights >> 6) & ~(FILE_H | FILE_G)) & bit) return true;
-    if (((bb.black_knights << 17) & ~FILE_H) & bit) return true;
-    if (((bb.black_knights << 15) & ~FILE_A) & bit) return true;
-    if (((bb.black_knights << 10) & ~(FILE_H | FILE_G)) & bit) return true;
-    if (((bb.black_knights << 6) & ~(FILE_A | FILE_B)) & bit) return true;
+    // knight attacks (source pre-masked to avoid file wraparound)
+    if (((bb.black_knights & ~FILE_A) >> 17) & bit) return true;
+    if (((bb.black_knights & ~FILE_H) >> 15) & bit) return true;
+    if (((bb.black_knights & ~(FILE_A | FILE_B)) >> 10) & bit) return true;
+    if (((bb.black_knights & ~(FILE_G | FILE_H)) >> 6) & bit) return true;
+    if (((bb.black_knights & ~FILE_H) << 17) & bit) return true;
+    if (((bb.black_knights & ~FILE_A) << 15) & bit) return true;
+    if (((bb.black_knights & ~(FILE_G | FILE_H)) << 10) & bit) return true;
+    if (((bb.black_knights & ~(FILE_A | FILE_B)) << 6) & bit) return true;
 
     // black bishops / queens on diagonals
     const int diag_dx[4] = {1, 1, -1, -1};
@@ -372,11 +372,11 @@ int is_black_attacked(int sq_idx, const Bitboard &bb) {
     if (((bb.white_pawns << 9) & ~FILE_A) & bit) return true;
 
     // knight attacks
-    if (((bb.white_knights >> 17) & ~FILE_A) & bit) return true;
-    if (((bb.white_knights >> 15) & ~FILE_H) & bit) return true;
-    if (((bb.white_knights >> 10) & ~(FILE_A | FILE_B)) & bit) return true;
-    if (((bb.white_knights >> 6) & ~(FILE_H | FILE_G)) & bit) return true;
-    if (((bb.white_knights << 17) & ~FILE_H) & bit) return true;
+    if (((bb.white_knights & ~FILE_A) >> 17) & bit) return true;
+    if (((bb.white_knights & ~FILE_H) >> 15) & bit) return true;
+    if (((bb.white_knights & ~(FILE_A | FILE_B)) >> 10) & bit) return true;
+    if (((bb.white_knights & ~(FILE_H | FILE_G)) >> 6) & bit) return true;
+    if (((bb.white_knights & ~FILE_H) << 17) & bit) return true;
     if (((bb.white_knights << 15) & ~FILE_A) & bit) return true;
     if (((bb.white_knights << 10) & ~(FILE_H | FILE_G)) & bit) return true;
     if (((bb.white_knights << 6) & ~(FILE_A | FILE_B)) & bit) return true;
