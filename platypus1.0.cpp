@@ -57,76 +57,136 @@ const std::string SQUARES[64] = {
 };
 
 using namespace std;
-const int8_t PAWN_PST[8][8] = {
-    { 0,   0,   0,  0,   0,   0,  0,  0},
-    { 5, 10,  10, -20, -20,  10, 10,  5},
-    { 5, -5, -10,   0,   0, -10, -5,  5},
-    { 0,  0,   0,  20,  20,  0 ,  0,  0},
-    { 5,  5,  10,  25,  25,  10,  5,  5},
-    {10, 10,  20,  30,  30,  20, 10, 10},
-    {50, 50,  50,  50,  50,  50, 50, 50},
-    { 0,  0,   0,   0,   0,   0,  0,  0}
-};
-const int8_t KNIGHT_PST[8][8] = {
-    {-50, -10, -20, -20, -20, -20, -10, -50},
-    {-40, -15, -15, -15, -15, -15, -15, -40},
-    {-40, -15,   0,   5,   5,   5, -15, -40},
-    {-40, -15,   5,   5,   5,   5, -15, -40},
-    {-40, -15,   5,   5,   5,   5, -15, -40},
-    {-40, -15,   5,   5,   5,   5, -15, -40},
-    {-40, -15, -15, -15, -15, -15, -15, -40},
-    {-50, -20, -20, -20, -20, -20, -20, -50}
-};
-const int8_t BISHOP_PST[8][8] = {
-    {-20, -10, -10, -10, -10, -10, -10, -20},
-    {-10, 0, 0, 0, 0, 0, 0, -10},
-    {-10, 0, 5, 10, 10, 5, 0, -10},
-    {-10 ,5 ,5 ,10 ,10 ,5 ,5 ,-10},
-    {-10 ,0 ,10 ,10 ,10 ,10 ,0 ,-10},
-    {-10 ,5 ,5 ,10 ,10 ,5 ,5 ,-10},
-    {-10 ,0 ,0 ,0 ,0 ,0 ,0 ,-10},
-    {-20 ,-10 ,-10 ,-10 ,-10 ,-10 ,-10 ,-20}
-};
-const int8_t ROOK_PST[8][8] = {
-    { 0,  0,  0,  5,  5,  0,  0,  0},   // rank 1
-    {-5,  0,  0,  0,  0,  0,  0, -5},   // rank 2
-    {-5,  0,  0,  0,  0,  0,  0, -5},   // rank 3
-    {-5,  0,  0,  0,  0,  0,  0, -5},   // rank 4
-    {-5,  0,  0,  0,  0,  0,  0, -5},   // rank 5
-    {-5,  0,  0,  0,  0,  0,  0, -5},   // rank 6
-    { 5, 10, 10, 10, 10, 10, 10,  5},   // rank 7
-    { 0,  0,  0,  0,  0,  0,  0,  0}    // rank 8
-};
-const int8_t QUEEN_PST[8][8] = {
-    {-20, -10, -10, -5, -5, -10, -10, -20},
-    {-10, 0, 0, 0, 0, 0, 0, -10},
-    {-10 ,0 ,5 ,5 ,5 ,5 ,0 ,-10},
-    {-5 ,0 ,5 ,5 ,5 ,5 ,0 ,-5},
-    {0 ,0 ,5 ,5 ,5 ,5 ,0 ,-5},
-    {-10 ,5 ,5 ,5 ,5 ,5 ,0 ,-10},
-    {-10 ,0 ,5 ,0 ,0 ,0 ,0 ,-10},
-    {-20 ,-10 ,-10 ,-5 ,-5 ,-10 ,-10 ,-20}
-};
-const int8_t KING_MIDGAME_PST[8][8] = {
-    { 20,  30,  10,   0,   0,  10,  30,  20},  // rank 1
-    { 20,  20,   0,   0,   0,   0,  20,  20},  // rank 2
-    {-10, -20, -20, -20, -20, -20, -20, -10},  // rank 3
-    {-20, -30, -30, -40, -40, -30, -30, -20},  // rank 4
-    {-30, -40, -40, -50, -50, -40, -40, -30},  // rank 5
-    {-30, -40, -40, -50, -50, -40, -40, -30},  // rank 6
-    {-30, -40, -40, -50, -50, -40, -40, -30},  // rank 7
-    {-30, -40, -40, -50, -50, -40, -40, -30}   // rank 8
-};
 
-const int8_t KING_ENDGAME_PST[8][8] = {
-    {-50, -30, -30, -30, -30, -30, -30, -50},  // rank 1
-    {-30, -30,   0,   0,   0,   0, -30, -30},  // rank 2
-    {-30, -10,  20,  30,  30,  20, -10, -30},  // rank 3
-    {-30, -10,  30,  40,  40,  30, -10, -30},  // rank 4
-    {-30, -10,  30,  40,  40,  30, -10, -30},  // rank 5
-    {-30, -10,  20,  30,  30,  20, -10, -30},  // rank 6
-    {-30, -30,   0,   0,   0,   0, -30, -30},  // rank 7
-    {-50, -30, -30, -30, -30, -30, -30, -50}   // rank 8
+// ---- PeSTO tapered evaluation: mg/eg material values, phase weights ----
+const int MG_VALUE[6] = {82, 337, 365, 477, 1025, 0};   // P N B R Q K
+const int EG_VALUE[6] = {94, 281, 297, 512,  936, 0};
+const int PHASE_WEIGHT[6] = {0, 1, 1, 2, 4, 0};
+const int TOTAL_PHASE = 24; // 4N*1 + 4B*1 + 4R*2 + 2Q*4
+
+// ---- PeSTO / Rofchade piece-square tables ----
+// Index 0 = a8 (top-left as conventionally printed). White looks up table[sq ^ 56],
+// black looks up table[sq] directly (see pesto_lookup below) — this avoids having
+// to hand-reorder every table into our own a1=0 square numbering.
+const int16_t MG_PAWN_TABLE[64] = {
+      0,   0,   0,   0,   0,   0,  0,   0,
+     98, 134,  61,  95,  68, 126, 34, -11,
+     -6,   7,  26,  31,  65,  56, 25, -20,
+    -14,  13,   6,  21,  23,  12, 17, -23,
+    -27,  -2,  -5,  12,  17,   6, 10, -25,
+    -26,  -4,  -4, -10,   3,   3, 33, -12,
+    -35,  -1, -20, -23, -15,  24, 38, -22,
+      0,   0,   0,   0,   0,   0,  0,   0,
+};
+const int16_t EG_PAWN_TABLE[64] = {
+      0,   0,   0,   0,   0,   0,   0,   0,
+    178, 173, 158, 134, 147, 132, 165, 187,
+     94, 100,  85,  67,  56,  53,  82,  84,
+     32,  24,  13,   5,  -2,   4,  17,  17,
+     13,   9,  -3,  -7,  -7,  -8,   3,  -1,
+      4,   7,  -6,   1,   0,  -5,  -1,  -8,
+     13,   8,   8,  10,  13,   0,   2,  -7,
+      0,   0,   0,   0,   0,   0,   0,   0,
+};
+const int16_t MG_KNIGHT_TABLE[64] = {
+    -167, -89, -34, -49,  61, -97, -15, -107,
+     -73, -41,  72,  36,  23,  62,   7,  -17,
+     -47,  60,  37,  65,  84, 129,  73,   44,
+      -9,  17,  19,  53,  37,  69,  18,   22,
+     -13,   4,  16,  13,  28,  19,  21,   -8,
+     -23,  -9,  12,  10,  19,  17,  25,  -16,
+     -29, -53, -12,  -3,  -1,  18, -14,  -19,
+    -105, -21, -58, -33, -17, -28, -19,  -23,
+};
+const int16_t EG_KNIGHT_TABLE[64] = {
+    -58, -38, -13, -28, -31, -27, -63, -99,
+    -25,  -8, -25,  -2,  -9, -25, -24, -52,
+    -24, -20,  10,   9,  -1,  -9, -19, -41,
+    -17,   3,  22,  22,  22,  11,   8, -18,
+    -18,  -6,  16,  25,  16,  17,   4, -18,
+    -23,  -3,  -1,  15,  10,  -3, -20, -22,
+    -42, -20, -10,  -5,  -2, -20, -23, -44,
+    -29, -51, -23, -15, -22, -18, -50, -64,
+};
+const int16_t MG_BISHOP_TABLE[64] = {
+    -29,   4, -82, -37, -25, -42,   7,  -8,
+    -26,  16, -18, -13,  30,  59,  18, -47,
+    -16,  37,  43,  40,  35,  50,  37,  -2,
+     -4,   5,  19,  50,  37,  37,   7,  -2,
+     -6,  13,  13,  26,  34,  12,  10,   4,
+      0,  15,  15,  15,  14,  27,  18,  10,
+      4,  15,  16,   0,   7,  21,  33,   1,
+    -33,  -3, -14, -21, -13, -12, -39, -21,
+};
+const int16_t EG_BISHOP_TABLE[64] = {
+    -14, -21, -11,  -8, -7,  -9, -17, -24,
+     -8,  -4,   7, -12, -3, -13,  -4, -14,
+      2,  -8,   0,  -1, -2,   6,   0,   4,
+     -3,   9,  12,   9, 14,  10,   3,   2,
+     -6,   3,  13,  19,  7,  10,  -3,  -9,
+    -12,  -3,   8,  10, 13,   3,  -7, -15,
+    -14, -18,  -7,  -1,  4,  -9, -15, -27,
+    -23,  -9, -23,  -5, -9, -16,  -5, -17,
+};
+const int16_t MG_ROOK_TABLE[64] = {
+     32,  42,  32,  51, 63,  9,  31,  43,
+     27,  32,  58,  62, 80, 67,  26,  44,
+     -5,  19,  26,  36, 17, 45,  61,  16,
+    -24, -11,   7,  26, 24, 35,  -8, -20,
+    -36, -26, -12,  -1,  9, -7,   6, -23,
+    -45, -25, -16, -17,  3,  0,  -5, -33,
+    -44, -16, -20,  -9, -1, 11,  -6, -71,
+    -19, -13,   1,  17, 16,  7, -37, -26,
+};
+const int16_t EG_ROOK_TABLE[64] = {
+    13, 10, 18, 15, 12,  12,   8,   5,
+    11, 13, 13, 11, -3,   3,   8,   3,
+     7,  7,  7,  5,  4,  -3,  -5,  -3,
+     4,  3, 13,  1,  2,   1,  -1,   2,
+     3,  5,  8,  4, -5,  -6,  -8, -11,
+    -4,  0, -5, -1, -7, -12,  -8, -16,
+    -6, -6,  0,  2, -9,  -9, -11,  -3,
+    -9,  2,  3, -1, -5, -13,   4, -20,
+};
+const int16_t MG_QUEEN_TABLE[64] = {
+    -28,   0,  29,  12,  59,  44,  43,  45,
+    -24, -39,  -5,   1, -16,  57,  28,  54,
+    -13, -17,   7,   8,  29,  56,  47,  57,
+    -27, -27, -16, -16,  -1,  17,  -2,   1,
+     -9, -26,  -9, -10,  -2,  -4,   3,  -3,
+    -14,   2, -11,  -2,  -5,   2,  14,   5,
+    -35,  -8,  11,   2,   8,  15,  -3,   1,
+     -1, -18,  -9,  10, -15, -25, -31, -50,
+};
+const int16_t EG_QUEEN_TABLE[64] = {
+     -9,  22,  22,  27,  27,  19,  10,  20,
+    -17,  20,  32,  41,  58,  25,  30,   0,
+    -20,   6,   9,  49,  47,  35,  19,   9,
+      3,  22,  24,  45,  57,  40,  57,  36,
+    -18,  28,  19,  47,  31,  34,  39,  23,
+    -16, -27,  15,   6,   9,  17,  10,   5,
+    -22, -23, -30, -16, -16, -23, -36, -32,
+    -33, -28, -22, -43,  -5, -32, -20, -41,
+};
+const int16_t MG_KING_TABLE[64] = {
+    -65,  23,  16, -15, -56, -34,   2,  13,
+     29,  -1, -20,  -7,  -8,  -4, -38, -29,
+     -9,  24,   2, -16, -20,   6,  22, -22,
+    -17, -20, -12, -27, -30, -25, -14, -36,
+    -49,  -1, -27, -39, -46, -44, -33, -51,
+    -14, -14, -22, -46, -44, -30, -15, -27,
+      1,   7,  -8, -64, -43, -16,   9,   8,
+    -15,  36,  12, -54,   8, -28,  24,  14,
+};
+const int16_t EG_KING_TABLE[64] = {
+    -74, -35, -18, -18, -11,  15,   4, -17,
+    -12,  17,  14,  17,  17,  38,  23,  11,
+     10,  17,  23,  15,  20,  45,  44,  13,
+     -8,  22,  24,  27,  26,  33,  26,   3,
+    -18,  -4,  21,  24,  27,  23,   9, -11,
+    -19,  -3,  11,  21,  23,  16,   7,  -9,
+    -27, -11,   4,  13,  14,   4,  -5, -17,
+    -53, -34, -21, -11, -28, -14, -24, -43,
 };
 
 //zorbrist hashing 
@@ -1088,44 +1148,26 @@ int doubled_pawn_penalty(const Bitboard &bb) {
 }
 
 
-int get_pst_value(char piece, int sq_idx, bool white) {
-    if (piece == ' ') return 0;
-    int x = sq_idx % 8;
-    int y = sq_idx / 8;
-    piece = toupper(piece);
-    if (white){
-        switch (piece) {
-            case 'P': return PAWN_PST[y][x];
-            case 'N': return KNIGHT_PST[y][x];
-            case 'B': return BISHOP_PST[y][x];
-            case 'R': return ROOK_PST[y][x];
-            case 'Q': return QUEEN_PST[y][x];
-            case 'K': return KING_MIDGAME_PST[y][x];
-        }
-    }else{
-        switch (piece) {
-            case 'P': return -PAWN_PST[7-y][x];
-            case 'N': return -KNIGHT_PST[7-y][x];
-            case 'B': return -BISHOP_PST[7-y][x];
-            case 'R': return -ROOK_PST[7-y][x];
-            case 'Q': return -QUEEN_PST[7-y][x];
-            case 'K': return -KING_MIDGAME_PST[7-y][x];
-        }
+// index 0-5: P N B R Q K
+inline int piece_type_index(char p) {
+    switch (toupper(p)) {
+        case 'P': return 0; case 'N': return 1; case 'B': return 2;
+        case 'R': return 3; case 'Q': return 4; case 'K': return 5;
     }
-    return 0;
+    return -1;
 }
 
-inline int pst_value(const int8_t table[8][8], int sq_idx, bool white) {
-    const int x = sq_idx % 8;
-    const int y = sq_idx / 8;
-    return white ? table[y][x] : -table[7 - y][x];
+inline int pesto_lookup(const int16_t table[64], int sq, bool white) {
+    return white ? table[sq ^ 56] : table[sq];
 }
 
-inline int king_pst_value(int sq_idx, bool white, bool endgame) {
-    const int x = sq_idx % 8;
-    const int y = sq_idx / 8;
-    const auto &table = endgame ? KING_ENDGAME_PST : KING_MIDGAME_PST;
-    return white ? table[y][x] : -table[7 - y][x];
+int game_phase(const Bitboard &bb) {
+    int phase = 0;
+    phase += __builtin_popcountll(bb.white_knights | bb.black_knights) * PHASE_WEIGHT[1];
+    phase += __builtin_popcountll(bb.white_bishops | bb.black_bishops) * PHASE_WEIGHT[2];
+    phase += __builtin_popcountll(bb.white_rooks   | bb.black_rooks)   * PHASE_WEIGHT[3];
+    phase += __builtin_popcountll(bb.white_queens  | bb.black_queens)  * PHASE_WEIGHT[4];
+    return std::min(phase, TOTAL_PHASE); // clamp in case of promotions
 }
 
 int castling_evaluation(const Bitboard &bb, const Gamestate &state, const int &endgame) {
@@ -1133,7 +1175,6 @@ int castling_evaluation(const Bitboard &bb, const Gamestate &state, const int &e
     (void)endgame;
 
     int score = 0;
-
     if (state.wcastled == false) {
         if (state.castle[0]) score += 100; // White kingside
         if (state.castle[1]) score += 100; // White queenside
@@ -1150,49 +1191,43 @@ int castling_evaluation(const Bitboard &bb, const Gamestate &state, const int &e
     return score;
 }
 
-int evaluate(const Bitboard &bb, bool endgame,const Gamestate &state) {
-    int score = 0;
-    const bool is_end = endgame;
+int evaluate(const Bitboard &bb, bool endgame, const Gamestate &state) {
+    (void)endgame;
+    int mg_score = 0, eg_score = 0;
+    auto accumulate = [&](std::uint64_t bits, int piece_idx,
+                          const int16_t mg_table[64], const int16_t eg_table[64], bool white) {
+        while (bits) {
+            int sq = __builtin_ctzll(bits); bits &= bits - 1;
+            int sign = white ? 1 : -1;
+            mg_score += sign * (MG_VALUE[piece_idx] + pesto_lookup(mg_table, sq, white));
+            eg_score += sign * (EG_VALUE[piece_idx] + pesto_lookup(eg_table, sq, white));
+            if (piece_idx == 0) { // pawn-specific extras, kept from the old eval
+                if (white) { if (is_passed_pawn(sq, bb, true))  mg_score += 80 + 10 * (sq / 8), eg_score += 80 + 10 * (sq / 8); }
+                else       { if (is_passed_pawn(sq, bb, false)) mg_score -= 80 + 10 * (7 - sq / 8), eg_score -= 80 + 10 * (7 - sq / 8); }
+            }
+        }
+    };
 
-    uint64_t b = bb.white_pawns;
-    while (b) {
-        int sq = __builtin_ctzll(b); b &= b - 1;
-        score += 100 + pst_value(PAWN_PST, sq, true);
-        if (is_end) score += 12 * (sq / 8);
-        if (is_passed_pawn(sq, bb, true)) score += 80 + 10 * (sq / 8);
-    }
-    b = bb.white_knights;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += 320 + pst_value(KNIGHT_PST, sq, true); }
-    b = bb.white_bishops;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += 330 + pst_value(BISHOP_PST, sq, true); }
-    b = bb.white_rooks;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += 500 + pst_value(ROOK_PST, sq, true); }
-    b = bb.white_queens;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += 900 + pst_value(QUEEN_PST, sq, true); }
-    b = bb.white_kings;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += 2000 + king_pst_value(sq, true, is_end); }
+    accumulate(bb.white_pawns,   0, MG_PAWN_TABLE,   EG_PAWN_TABLE,   true);
+    accumulate(bb.white_knights, 1, MG_KNIGHT_TABLE, EG_KNIGHT_TABLE, true);
+    accumulate(bb.white_bishops, 2, MG_BISHOP_TABLE, EG_BISHOP_TABLE, true);
+    accumulate(bb.white_rooks,   3, MG_ROOK_TABLE,   EG_ROOK_TABLE,   true);
+    accumulate(bb.white_queens,  4, MG_QUEEN_TABLE,  EG_QUEEN_TABLE,  true);
+    accumulate(bb.white_kings,   5, MG_KING_TABLE,   EG_KING_TABLE,   true);
 
-    b = bb.black_pawns;
-    while (b) {
-        int sq = __builtin_ctzll(b); b &= b - 1;
-        score += -100 + pst_value(PAWN_PST, sq, false);
-        if (is_end) score -= 12 * (7 - sq / 8);
-        if (is_passed_pawn(sq, bb, false)) score -= 80 + 10 * (7 - sq / 8);
-    }
-    b = bb.black_knights;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += -320 + pst_value(KNIGHT_PST, sq, false); }
-    b = bb.black_bishops;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += -330 + pst_value(BISHOP_PST, sq, false); }
-    b = bb.black_rooks;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += -500 + pst_value(ROOK_PST, sq, false); }
-    b = bb.black_queens;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += -900 + pst_value(QUEEN_PST, sq, false); }
-    b = bb.black_kings;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += -2000 + king_pst_value(sq, false, is_end); }
+    accumulate(bb.black_pawns,   0, MG_PAWN_TABLE,   EG_PAWN_TABLE,   false);
+    accumulate(bb.black_knights, 1, MG_KNIGHT_TABLE, EG_KNIGHT_TABLE, false);
+    accumulate(bb.black_bishops, 2, MG_BISHOP_TABLE, EG_BISHOP_TABLE, false);
+    accumulate(bb.black_rooks,   3, MG_ROOK_TABLE,   EG_ROOK_TABLE,   false);
+    accumulate(bb.black_queens,  4, MG_QUEEN_TABLE,  EG_QUEEN_TABLE,  false);
+    accumulate(bb.black_kings,   5, MG_KING_TABLE,   EG_KING_TABLE,   false);
+
+    int phase = game_phase(bb);
+    int score = (mg_score * phase + eg_score * (TOTAL_PHASE - phase)) / TOTAL_PHASE;
 
     score += doubled_pawn_penalty(bb);
     score += queen_development_pen(bb);
-    score += castling_evaluation(bb, state, endgame);
+    score += castling_evaluation(bb, state, phase < 12); // rough endgame-ish signal for this term
     return score;
 }
 
@@ -1475,6 +1510,7 @@ int minmax(const Bitboard &bb, const Gamestate &state, bool white, int depth, in
     }   
 }
 
+
 std::tuple<int,int,int> best_move(const Bitboard &bb, const Gamestate &state, bool white, int max_depth) {
     const int INF = 1000000;
     const int INITIAL_DELTA = 50;
@@ -1746,4 +1782,3 @@ int main() {
     }
     return 0;
 }
-
