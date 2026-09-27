@@ -251,7 +251,13 @@ std::pair<char, std::int8_t> sq(std::uint8_t s[2]){
 }
 
 std::string sq_to_str(char pos[]) {
-    return SQUARES[pos[0]]+to_string(int(pos[1])+1);
+    if (pos == nullptr || pos[0] < 'a' || pos[0] > 'h' || pos[1] < '1' || pos[1] > '8') {
+        return "";
+    }
+
+    const int file = pos[0] - 'a';
+    const int rank = pos[1] - '1';
+    return SQUARES[file + rank * 8];
 }
 
 int inbounds(int x, int y){
@@ -1122,7 +1128,10 @@ inline int king_pst_value(int sq_idx, bool white, bool endgame) {
     return white ? table[y][x] : -table[7 - y][x];
 }
 
-int castling_evaluation(const Bitboard &bb, const Gamestate &state,const int &endgame) {
+int castling_evaluation(const Bitboard &bb, const Gamestate &state, const int &endgame) {
+    (void)bb;
+    (void)endgame;
+
     int score = 0;
 
     if (state.wcastled == false) {
@@ -1464,23 +1473,6 @@ int minmax(const Bitboard &bb, const Gamestate &state, bool white, int depth, in
         if (moves_searched > 0) return store_and_return(v);
         return black_king_checked(bb) ? 100000 : 0;
     }   
-}
-
-static int root_move_order_score(const Bitboard &bb, int from_sq, int to_sq,int white) {
-    int score = 0;
-    char moving_piece = bb.piece_at(from_sq);
-    char target_piece = bb.piece_at(to_sq);
-
-    score += std::abs(piece_value(moving_piece)) * 10;
-    if (target_piece != ' ') {
-        score += std::abs(piece_value(target_piece)) * 100;
-    }
-
-    if ((moving_piece == 'P' && to_sq / 8 == 6) || (moving_piece == 'p' && to_sq / 8 == 1)) {
-        score += 5000;
-    }
-
-    return score * (white ? 1 : -1);
 }
 
 std::tuple<int,int,int> best_move(const Bitboard &bb, const Gamestate &state, bool white, int max_depth) {
