@@ -40,10 +40,10 @@ inline void init_passed_pawn_masks() {
         PASSED_PAWN_MASKS[sq] = mask;
     }
 }
-
+const int MATE_SCORE = 100000;
 const std::string FILES = "abcdefgh";
 const std::uint16_t PIECE_VALUES[6] = {100, 320, 330, 500, 900, 0};
-const int QUIESCENCE_MAX_DEPTH = 8;
+const int QUIESCENCE_MAX_DEPTH = 12;
 
 const std::string SQUARES[64] = {
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
@@ -1114,6 +1114,14 @@ inline int pst_value(const int8_t table[8][8], int sq_idx, bool white) {
     const int y = sq_idx / 8;
     return white ? table[y][x] : -table[7 - y][x];
 }
+
+inline int king_pst_value(int sq_idx, bool white, bool endgame) {
+    const int x = sq_idx % 8;
+    const int y = sq_idx / 8;
+    const auto &table = endgame ? KING_ENDGAME_PST : KING_MIDGAME_PST;
+    return white ? table[y][x] : -table[7 - y][x];
+}
+
 int castling_evaluation(const Bitboard &bb, const Gamestate &state,const int &endgame) {
     int score = 0;
 
@@ -1153,7 +1161,7 @@ int evaluate(const Bitboard &bb, bool endgame,const Gamestate &state) {
     b = bb.white_queens;
     while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += 900 + pst_value(QUEEN_PST, sq, true); }
     b = bb.white_kings;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += 2000 + pst_value(KING_MIDGAME_PST, sq, true); }
+    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += 2000 + king_pst_value(sq, true, is_end); }
 
     b = bb.black_pawns;
     while (b) {
@@ -1171,7 +1179,7 @@ int evaluate(const Bitboard &bb, bool endgame,const Gamestate &state) {
     b = bb.black_queens;
     while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += -900 + pst_value(QUEEN_PST, sq, false); }
     b = bb.black_kings;
-    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += -2000 + pst_value(KING_MIDGAME_PST, sq, false); }
+    while (b) { int sq = __builtin_ctzll(b); b &= b - 1; score += -2000 + king_pst_value(sq, false, is_end); }
 
     score += doubled_pawn_penalty(bb);
     score += queen_development_pen(bb);
@@ -1209,38 +1217,52 @@ int quiescence(const Bitboard &bb, const Gamestate &state, bool white, int alpha
     if (depth >= QUIESCENCE_MAX_DEPTH)
         return evaluate(bb, is_endgame(bb), state);
 
-    int stand_pat = evaluate(bb, is_endgame(bb), state);
+    bool in_check = white ? white_king_checked(bb) : black_king_checked(bb);
 
-    if (white) {
-        if (stand_pat >= beta) return stand_pat;  // fail-soft: return stand_pat not beta
-        if (stand_pat > alpha) alpha = stand_pat;
-    } else {
-        if (stand_pat <= alpha) return stand_pat; // fail-soft: return stand_pat not alpha
-        if (stand_pat < beta)  beta  = stand_pat;
+    if (!in_check) {
+        int stand_pat = evaluate(bb, is_endgame(bb), state);
+        if (white) {
+            if (stand_pat >= beta) return stand_pat;
+            if (stand_pat > alpha) alpha = stand_pat;
+        } else {
+            if (stand_pat <= alpha) return stand_pat;
+            if (stand_pat < beta)  beta = stand_pat;
+        }
     }
 
-    auto moves = white ? generate_white_captures(bb, state)
-                       : generate_black_captures(bb, state);
+    auto moves = in_check
+        ? (white ? generate_white_moves(bb, state)    : generate_black_moves(bb, state))
+        : (white ? generate_white_captures(bb, state) : generate_black_captures(bb, state));
+
+    int legal_moves_tried = 0;
 
     for (const auto &move : moves) {
         int from_sq = move.first, to_sq = move.second;
-        if (white  && !(bb.black_all & (1ULL << to_sq))) continue;
-        if (!white && !(bb.white_all & (1ULL << to_sq))) continue;
+        if (!in_check) {
+            if (white  && !(bb.black_all & (1ULL << to_sq))) continue;
+            if (!white && !(bb.white_all & (1ULL << to_sq))) continue;
+        }
 
         if (white) {
             auto result = make_white_move(bb, state, from_sq, to_sq);
             if (white_king_checked(result.first)) continue;
+            legal_moves_tried++;
             int score = quiescence(result.first, result.second, false, alpha, beta, depth + 1);
-            if (score >= beta) return score;   // fail-soft
+            if (score >= beta) return score;
             if (score > alpha) alpha = score;
         } else {
             auto result = make_black_move(bb, state, from_sq, to_sq);
             if (black_king_checked(result.first)) continue;
+            legal_moves_tried++;
             int score = quiescence(result.first, result.second, true, alpha, beta, depth + 1);
-            if (score <= alpha) return score;  // fail-soft
-            if (score < beta)   beta  = score;
+            if (score <= alpha) return score;
+            if (score < beta)   beta = score;
         }
     }
+
+    if (in_check && legal_moves_tried == 0)
+        return white ? -MATE_SCORE + depth : MATE_SCORE - depth;
+
     return white ? alpha : beta;
 }
 int minmax(const Bitboard &bb, const Gamestate &state, bool white, int depth, int alpha, int beta) {
